@@ -1,0 +1,1 @@
+// Deprecated: Logic moved to controllers/community.controller.ts

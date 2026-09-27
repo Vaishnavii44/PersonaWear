@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String      @id @default(uuid())
+  email         String      @unique
+  passwordHash  String
+  fullName      String
+  tier          String      @default("STANDARD")
+  createdAt     DateTime    @default(now())
+  
+  wardrobe      WardrobeItem[]
+  outfits       Outfit[]
+  posts         Post[]
+  aiRequests    AIRequest[]
+  likes         Like[]
+}
+
+model WardrobeItem {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  category    String   // e.g., "Outerwear", "Bottoms"
+  imageUrl    String
+  colorHex    String?
+  brand       String?
+  createdAt   DateTime @default(now())
+  
+  outfits     OutfitItem[]
+}
+
+model Outfit {
+  id          String       @id @default(uuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  name        String?
+  generatedBy String       // "USER" or "AI"
+  createdAt   DateTime     @default(now())
+  
+  items       OutfitItem[]
+  post        Post?
+}
+
+// Join table for many-to-many relationship between Outfits and Items
+model OutfitItem {
+  outfitId       String
+  wardrobeItemId String
+  outfit         Outfit       @relation(fields: [outfitId], references: [id])
+  wardrobeItem   WardrobeItem @relation(fields: [wardrobeItemId], references: [id])
+
+  @@id([outfitId, wardrobeItemId])
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  outfitId  String   @unique
+  outfit    Outfit   @relation(fields: [outfitId], references: [id])
+  caption   String?
+  createdAt DateTime @default(now())
+  
+  likes     Like[]
+}
+
+model Like {
+  userId String
+  postId String
+  user   User   @relation(fields: [userId], references: [id])
+  post   Post   @relation(fields: [postId], references: [id])
+
+  @@id([userId, postId])
+}
+
+model AIRequest {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  jobType     String   // "MESH_GENERATION", "STYLE_PREDICTION"
+  status      String   // "PENDING", "PROCESSING", "COMPLETED", "FAILED"
+  resultData  Json?    // Stores S3 URLs or AI metadata upon completion
+  createdAt   DateTime @default(now())
+}
